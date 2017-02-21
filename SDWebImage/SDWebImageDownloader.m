@@ -38,12 +38,15 @@
 
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Warc-performSelector-leaks"
-        id activityIndicator = [NSClassFromString(@"SDNetworkActivityIndicator") performSelector:NSSelectorFromString(@"sharedActivityIndicator")];
+        id activityIndicator = [NSClassFromString(@"SDNetworkActivityIndicator")
+                                performSelector:NSSelectorFromString(@"sharedActivityIndicator")];
 #pragma clang diagnostic pop
 
         // Remove observer in case it was previously added.
-        [[NSNotificationCenter defaultCenter] removeObserver:activityIndicator name:SDWebImageDownloadStartNotification object:nil];
-        [[NSNotificationCenter defaultCenter] removeObserver:activityIndicator name:SDWebImageDownloadStopNotification object:nil];
+        [[NSNotificationCenter defaultCenter] removeObserver:activityIndicator
+                                                        name:SDWebImageDownloadStartNotification object:nil];
+        [[NSNotificationCenter defaultCenter] removeObserver:activityIndicator
+                                                        name:SDWebImageDownloadStopNotification object:nil];
 
         [[NSNotificationCenter defaultCenter] addObserver:activityIndicator
                                                  selector:NSSelectorFromString(@"startActivity")

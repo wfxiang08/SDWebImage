@@ -57,7 +57,9 @@
 - (void)startPrefetchingAtIndex:(NSUInteger)index {
     if (index >= self.prefetchURLs.count) return;
     self.requestedCount++;
-    [self.manager loadImageWithURL:self.prefetchURLs[index] options:self.options progress:nil completed:^(UIImage *image, NSData *data, NSError *error, SDImageCacheType cacheType, BOOL finished, NSURL *imageURL) {
+    
+    [self.manager loadImageWithURL:self.prefetchURLs[index] options:self.options progress:nil
+                         completed:^(UIImage *image, NSData *data, NSError *error, SDImageCacheType cacheType, BOOL finished, NSURL *imageURL) {
         if (!finished) return;
         self.finishedCount++;
 
@@ -105,6 +107,7 @@
     }
 }
 
+// 预加载的URLs
 - (void)prefetchURLs:(nullable NSArray<NSURL *> *)urls {
     [self prefetchURLs:urls progress:nil completed:nil];
 }
@@ -112,6 +115,7 @@
 - (void)prefetchURLs:(nullable NSArray<NSURL *> *)urls
             progress:(nullable SDWebImagePrefetcherProgressBlock)progressBlock
            completed:(nullable SDWebImagePrefetcherCompletionBlock)completionBlock {
+    
     [self cancelPrefetching]; // Prevent duplicate prefetch request
     self.startedTime = CFAbsoluteTimeGetCurrent();
     self.prefetchURLs = urls;

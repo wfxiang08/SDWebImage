@@ -35,6 +35,7 @@ inline UIImage *SDScaledImageForKey(NSString * _Nullable key, UIImage * _Nullabl
 #elif SD_UIKIT
         if ([[UIScreen mainScreen] respondsToSelector:@selector(scale)]) {
 #endif
+            // 实现文件名到 scale的映射
             CGFloat scale = 1;
             if (key.length >= 8) {
                 NSRange range = [key rangeOfString:@"@2x."];

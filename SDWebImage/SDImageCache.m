@@ -25,6 +25,7 @@
     self = [super init];
     if (self) {
 #if SD_UIKIT
+        // 内存不够时，自动purge
         [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(removeAllObjects) name:UIApplicationDidReceiveMemoryWarningNotification object:nil];
 #endif
     }
@@ -44,6 +45,8 @@ FOUNDATION_STATIC_INLINE NSUInteger SDCacheCostForImage(UIImage *image) {
 #if SD_MAC
     return image.size.height * image.size.width;
 #elif SD_UIKIT || SD_WATCH
+    // 在手机上还需要关注: scale
+    // 具体像素?
     return image.size.height * image.size.width * image.scale * image.scale;
 #endif
 }
@@ -54,6 +57,8 @@ FOUNDATION_STATIC_INLINE NSUInteger SDCacheCostForImage(UIImage *image) {
 @property (strong, nonatomic, nonnull) NSCache *memCache;
 @property (strong, nonatomic, nonnull) NSString *diskCachePath;
 @property (strong, nonatomic, nullable) NSMutableArray<NSString *> *customPaths;
+
+// 通过ioQueue来避免冲突
 @property (SDDispatchQueueSetterSementics, nonatomic, nullable) dispatch_queue_t ioQueue;
 
 @end
@@ -239,6 +244,9 @@ FOUNDATION_STATIC_INLINE NSUInteger SDCacheCostForImage(UIImage *image) {
     }
 }
 
+//
+// 将图片缓存到Disk上
+//
 - (void)storeImageDataToDisk:(nullable NSData *)imageData forKey:(nullable NSString *)key {
     if (!imageData || !key) {
         return;
@@ -251,6 +259,9 @@ FOUNDATION_STATIC_INLINE NSUInteger SDCacheCostForImage(UIImage *image) {
     }
     
     // get cache Path for image key
+    // 定制Cache的策略
+    // key --> cachePath
+    //
     NSString *cachePathForKey = [self defaultCachePathForKey:key];
     // transform to NSUrl
     NSURL *fileURL = [NSURL fileURLWithPath:cachePathForKey];
@@ -258,6 +269,7 @@ FOUNDATION_STATIC_INLINE NSUInteger SDCacheCostForImage(UIImage *image) {
     [_fileManager createFileAtPath:cachePathForKey contents:imageData attributes:nil];
     
     // disable iCloud backup
+    // 高级: iCloud备份直接跳过
     if (self.config.shouldDisableiCloud) {
         [fileURL setResourceValue:@YES forKey:NSURLIsExcludedFromBackupKey error:nil];
     }
@@ -271,6 +283,7 @@ FOUNDATION_STATIC_INLINE NSUInteger SDCacheCostForImage(UIImage *image) {
 
         // fallback because of https://github.com/rs/SDWebImage/pull/976 that added the extension to the disk file name
         // checking the key with and without the extension
+        // 兼容旧版本的Cache, 不过现在基本上可以不考虑了
         if (!exists) {
             exists = [_fileManager fileExistsAtPath:[self defaultCachePathForKey:key].stringByDeletingPathExtension];
         }
@@ -289,6 +302,7 @@ FOUNDATION_STATIC_INLINE NSUInteger SDCacheCostForImage(UIImage *image) {
 
 - (nullable UIImage *)imageFromDiskCacheForKey:(nullable NSString *)key {
     UIImage *diskImage = [self diskImageForKey:key];
+    
     if (diskImage && self.config.shouldCacheImagesInMemory) {
         NSUInteger cost = SDCacheCostForImage(diskImage);
         [self.memCache setObject:diskImage forKey:key cost:cost];
@@ -465,6 +479,7 @@ FOUNDATION_STATIC_INLINE NSUInteger SDCacheCostForImage(UIImage *image) {
 
 - (void)clearDiskOnCompletion:(nullable SDWebImageNoParamsBlock)completion {
     dispatch_async(self.ioQueue, ^{
+        // 直接删除所有的Cache
         [_fileManager removeItemAtPath:self.diskCachePath error:nil];
         [_fileManager createDirectoryAtPath:self.diskCachePath
                 withIntermediateDirectories:YES
@@ -486,6 +501,9 @@ FOUNDATION_STATIC_INLINE NSUInteger SDCacheCostForImage(UIImage *image) {
 - (void)deleteOldFilesWithCompletionBlock:(nullable SDWebImageNoParamsBlock)completionBlock {
     dispatch_async(self.ioQueue, ^{
         NSURL *diskCacheURL = [NSURL fileURLWithPath:self.diskCachePath isDirectory:YES];
+        
+        // 如何删除老文件呢?
+        // NSURLContentAccessDateKey
         NSArray<NSString *> *resourceKeys = @[NSURLIsDirectoryKey, NSURLContentModificationDateKey, NSURLTotalFileAllocatedSizeKey];
 
         // This enumerator prefetches useful properties for our cache files.

@@ -59,6 +59,8 @@
         return @"";
     }
 
+    // SDWebImage如何定制URL的Cache规则呢?
+    //   cacheKeyFilter
     if (self.cacheKeyFilter) {
         return self.cacheKeyFilter(url);
     } else {

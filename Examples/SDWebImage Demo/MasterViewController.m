@@ -87,8 +87,8 @@
     return self;
 }
 
-- (void)flushCache
-{
+// 彻底删除缓存
+- (void)flushCache {
     [SDWebImageManager.sharedManager.imageCache clearMemory];
     [SDWebImageManager.sharedManager.imageCache clearDiskOnCompletion:nil];
 }
